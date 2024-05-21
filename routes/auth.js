@@ -47,13 +47,36 @@ router.post('/login', async (req, res, next) => {
   const user = result.rows[0]
   if(user) {
     if(await bcrypt.compare(password, user.password)) {
-      return res.json({ message: `Welcome back ${user.username}!`})
+      // 41.1.9 Express login with jwt
+      const token = jwt.sign({username, type: "admin"}, SECRET_KEY)
+      return res.json({ message: `Welcome back ${user.username}!`, token})
     }
   }
     throw new ExpressError("Invalid username/password", 400)
   } catch(e) {
     return next(e)
   }
+});
+
+// 41.1.9 Express login with jwt
+router.get('/topsecret', ensureLoggedIn, (req, res, next) => {
+  try {
+    
+    return res.json({ message: "Signed in! This is top secret!"})
+  } catch(e) {
+    return next(new ExpressError("You must be logged in to view this page", 401))
+  }
+});
+
+//41.1.10 Auth middleware
+router.get('/private', ensureLoggedIn, (req, res, next) => {
+  res.json({ message: `Welcome to my VIP section, ${req.user.username}`})  
+});
+
+router.get('/adminhome', ensureAdmin, (req, res, next) => {
+  res.json({ message: `Admin dashboard! Welcome, ${req.user.username}`})
 })
+
+
 
 module.exports = router;
